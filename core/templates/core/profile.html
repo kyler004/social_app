@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ user.username }}'s Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>{{user.username }}'s Profile</h1>
+        <a href="{% url 'core:home' %}" class="btn btn-secondary">Back to Home</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
+        {% endif %}
+        
+        <div class="card mb-3">
+            <div class="card-body">
+                {% if profile.profile_picture %}
+                    <img src="{{ profile.profile_picture.url }}" class="img-fluid rounded-circle" style="max-width: 100px;">
+                {% endif %}
+                <p><strong>Bio:</strong> {{ profile.bio|default:"No bio provided" }}</p>
+                <p><strong>Followers:</strong> {{ followers }} | <strong>Following:</strong> {{ following }}</p>
+                {% if profile_user != user %}
+                    <form method="post" action="{% url 'core:follow_user' user.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-{% if is_following %}secondary{% else %}success{% endif %}">
+                            {% if is_following %}Unfollow{% else %}Follow{% endif %}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <h3>Posts</h3>
+        {% for post in posts %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title"><a href="{% url 'core:profile' post.user.username %}">{{ post.user.username }}</a></h5>
+                    <p class="card-text">
+                        {% if post.shared_post %}
+                            <em>Shared from <a href="{% url 'core:profile' post.shared_post.user.username %}">{{ post.shared_post.user.username }}</a>: {{ post.shared_post.content }}</em><br>
+                        {% endif %}
+                        {{ post.content }}
+                    </p>
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" class="img-fluid" style="max-width: 300px;">
+                    {% endif %}
+                    <p class="card-text"><small>{{ post.created_at }}</small></p>
+                    <form method="post" action="{% url 'core:like_post' post.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-{% if user in post.like_set.all %}danger{% else %}primary{% endif %}">
+                            {% if user in post.like_set.all %}Unlike{% else %}Like{% endif %} ({{ post.like_set.count }})
+                        </button>
+                    </form>
+                    {% if post.user == user %}
+                        <a href="{% url 'core:edit_post' post.id %}" class="btn btn-sm btn-warning">Edit</a>
+                        <a href="{% url 'core:delete_post' post.id %}" class="btn btn-sm btn-danger">Delete</a>
+                    {% endif %}
+                    <h6>Comments</h6>
+                    {% for comment in post.comment_set.all %}
+                        <p><strong><a href="{% url 'core:profile' comment.user.username %}">{{ comment.user.username }}</a></strong>: {{ comment.content }} <small>{{ comment.created_at }}</small></p>
+                    {% endfor %}
+                    <form method="post" action="{% url 'core:comment_post' post.id %}">
+                        {% csrf_token %}
+                        {{ comment_form.as_p }}
+                        <button type="submit" class="btn btn-primary">Comment</button>
+                    </form>
+                </div>
+            </div>
+        {% empty %}
+            <p>No posts yet.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
